@@ -145,47 +145,33 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
         [DataRow(ConnectionMode.Gateway)]
         public async Task PointSuccessOperationsTest(ConnectionMode mode)
         {
-            using ClientDiagnosticListener testListener = new ClientDiagnosticListener(s => s.StartsWith("Azure.Cosmos"), asyncLocal: true);
+            Container container = await this.CreateClientAndContainer(mode);
+            // Create an item
+            ToDoActivity testItem = ToDoActivity.CreateRandomToDoActivity("MyTestPkValue");
+            ItemResponse<ToDoActivity> createResponse = await container.CreateItemAsync<ToDoActivity>(testItem);
+            ToDoActivity testItemCreated = createResponse.Resource;
 
-            try
-            {
-                Container container = await this.CreateClientAndContainer(mode);
-                // Create an item
-                ToDoActivity testItem = ToDoActivity.CreateRandomToDoActivity("MyTestPkValue");
-                ItemResponse<ToDoActivity> createResponse = await container.CreateItemAsync<ToDoActivity>(testItem);
-                ToDoActivity testItemCreated = createResponse.Resource;
+            // Read an Item
+            await container.ReadItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
 
-                // Read an Item
-                await container.ReadItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
+            // Upsert an Item
+            await container.UpsertItemAsync<ToDoActivity>(testItem);
 
-                // Upsert an Item
-                await container.UpsertItemAsync<ToDoActivity>(testItem);
+            // Replace an Item
+            await container.ReplaceItemAsync<ToDoActivity>(testItemCreated, testItemCreated.id.ToString());
 
-                // Replace an Item
-                await container.ReplaceItemAsync<ToDoActivity>(testItemCreated, testItemCreated.id.ToString());
-
-                // Patch an Item
-                List<PatchOperation> patch = new List<PatchOperation>()
+            // Patch an Item
+            List<PatchOperation> patch = new List<PatchOperation>()
             {
                 PatchOperation.Add("/new", "patched")
             };
-                await ((ContainerInternal)container).PatchItemAsync<ToDoActivity>(
-                    testItem.id,
-                    new Cosmos.PartitionKey(testItem.id),
-                    patch);
+            await ((ContainerInternal)container).PatchItemAsync<ToDoActivity>(
+                testItem.id,
+                new Cosmos.PartitionKey(testItem.id),
+                patch);
 
-                // Delete an Item
-                await container.DeleteItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            finally
-            {
-                testListener.Dispose();
-                testListener.Scopes.ForEach(e => Console.WriteLine(e.Name));
-            }
+            // Delete an Item
+            await container.DeleteItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
         }
 
         [TestMethod]
