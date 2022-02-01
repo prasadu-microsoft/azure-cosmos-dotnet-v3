@@ -120,8 +120,8 @@ namespace CosmosBenchmark
         [Option(Required = false, HelpText = "Container to publish results to")]
         public string ResultsContainer { get; set; } = "runsummary";
 
-        [Option(Required = false, HelpText = "Enable Request Diagnostics Telemetry")]
-        public bool EnableRequestDiagnosticsTelemetry { get; set; }
+        [Option(Required = false, HelpText = "Enable Open Telemetry")]
+        public bool EnableOpenTelemetry { get; set; }
 
         [Option(Required = false, HelpText = "AppInsights Connection String")]
         public string AppInsightConnectionString { get; set; }
