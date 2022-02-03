@@ -496,7 +496,13 @@ namespace Microsoft.Azure.Cosmos
                     }
                     finally
                     {
-                        scope.AddAttribute("Diagnostics", new CosmosTraceDiagnostics(trace));
+                        CosmosTraceDiagnostics diagnostics = new CosmosTraceDiagnostics(trace);
+
+                        if (diagnostics.GetClientElapsedTime() > TimeSpan.FromMilliseconds(1))
+                        {
+                            scope.AddAttribute("Diagnostics", diagnostics);
+                        }
+                        
                     }
                 }  
             }
