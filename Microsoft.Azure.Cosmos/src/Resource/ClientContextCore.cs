@@ -480,12 +480,18 @@ namespace Microsoft.Azure.Cosmos
                     }
                     catch (OperationCanceledException oe) when (!(oe is CosmosOperationCanceledException))
                     {
-                        scope.Failed(oe);
+                        if (scope.IsEnabled)
+                        {
+                            scope.Failed(oe);
+                        }
                         throw new CosmosOperationCanceledException(oe, trace);
                     }
                     catch (ObjectDisposedException objectDisposed) when (!(objectDisposed is CosmosObjectDisposedException))
                     {
-                        scope.Failed(objectDisposed);
+                        if (scope.IsEnabled)
+                        {
+                            scope.Failed(objectDisposed);
+                        }
                         throw new CosmosObjectDisposedException(
                             objectDisposed,
                             this.client,
@@ -493,14 +499,20 @@ namespace Microsoft.Azure.Cosmos
                     }
                     catch (NullReferenceException nullRefException) when (!(nullRefException is CosmosNullReferenceException))
                     {
-                        scope.Failed(nullRefException);
+                        if (scope.IsEnabled)
+                        {
+                            scope.Failed(nullRefException);
+                        }
                         throw new CosmosNullReferenceException(
                             nullRefException,
                             trace);
                     }
                     finally
                     {
-                        scope.AddAttribute(".Request Diagnostics", new CosmosTraceDiagnostics(trace));
+                        if (scope.IsEnabled)
+                        {
+                            scope.AddAttribute(".Request Diagnostics", new CosmosTraceDiagnostics(trace));
+                        }
                     }
                 }  
             }
