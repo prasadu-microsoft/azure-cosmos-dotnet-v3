@@ -22,6 +22,10 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
     using Newtonsoft.Json;
     using Documents.Rntbd;
     using System.Globalization;
+    using global::Azure.Monitor.OpenTelemetry.Exporter;
+    using OpenTelemetry;
+    using OpenTelemetry.Resources;
+    using OpenTelemetry.Trace;
 
     [TestClass]
     public class ClientTelemetryTests : BaseCosmosClientHelper
@@ -39,7 +43,7 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
         [ClassInitialize]
         public static void ClassInitialize(TestContext context)
         {
-            Environment.SetEnvironmentVariable(ClientTelemetryOptions.EnvPropsClientTelemetryEnabled, "true");
+            Environment.SetEnvironmentVariable(ClientTelemetryOptions.EnvPropsClientTelemetryEnabled, "false");
             Environment.SetEnvironmentVariable(ClientTelemetryOptions.EnvPropsClientTelemetrySchedulingInSeconds, "1");
             Environment.SetEnvironmentVariable(ClientTelemetryOptions.EnvPropsClientTelemetryEndpoint, telemetryEndpointUrl);
 
@@ -92,8 +96,8 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
             };
 
             this.cosmosClientBuilder = TestCommon.GetDefaultConfiguration()
-                                        .WithApplicationPreferredRegions(this.preferredRegionList)
-                                        .WithHttpClientFactory(() => new HttpClient(httpHandler));
+                .WithApplicationPreferredRegions(this.preferredRegionList);
+            //  .WithHttpClientFactory(() => new HttpClient(httpHandler));
         }
 
         [ClassCleanup]
@@ -145,13 +149,24 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
         [DataRow(ConnectionMode.Gateway)]
         public async Task PointSuccessOperationsTest(ConnectionMode mode)
         {
+            AppContext.SetSwitch("Azure.Experimental.EnableActivitySource", true);
+
+            using var openTelemetry = Sdk.CreateTracerProviderBuilder()
+                .AddSource("Azure.*") // Collect all traces from Azure SDKs
+                    .SetResourceBuilder(
+                    ResourceBuilder.CreateDefault()
+                        .AddService(serviceName: "Cosmos SDK Emulator Test", serviceVersion: "1.0"))
+                .AddAzureMonitorTraceExporter(options => options.ConnectionString =
+                        "InstrumentationKey=2fabff39-6a32-42da-9e8f-9fcff7d99c6b;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/") // Export traces to Azure Monitor
+                .Build();
+
             Container container = await this.CreateClientAndContainer(mode);
             // Create an item
             ToDoActivity testItem = ToDoActivity.CreateRandomToDoActivity("MyTestPkValue");
-            ItemResponse<ToDoActivity> createResponse = await container.CreateItemAsync<ToDoActivity>(testItem);
-            ToDoActivity testItemCreated = createResponse.Resource;
+           /* ItemResponse<ToDoActivity> createResponse = */await container.CreateItemAsync<ToDoActivity>(testItem);
+            //ToDoActivity testItemCreated = createResponse.Resource;
 
-            // Read an Item
+            /*// Read an Item
             await container.ReadItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
 
             // Upsert an Item
@@ -172,7 +187,7 @@ namespace Microsoft.Azure.Cosmos.SDK.EmulatorTests
 
             // Delete an Item
             await container.DeleteItemAsync<ToDoActivity>(testItem.id, new Cosmos.PartitionKey(testItem.id));
-        }
+        */}
 
         [TestMethod]
         [DataRow(ConnectionMode.Direct)]

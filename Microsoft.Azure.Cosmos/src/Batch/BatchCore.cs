@@ -221,7 +221,7 @@ namespace Microsoft.Azure.Cosmos
             return this.container.ClientContext.OperationHelperAsync(
                 nameof(ExecuteAsync),
                 requestOptions,
-                (trace) =>
+                (trace, diagnosticAttributes) =>
                 {
                     BatchExecutor executor = new BatchExecutor(
                         container: this.container,
